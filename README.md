@@ -18,8 +18,15 @@ Along the way, you'll create a new Slack app, set up a simple development enviro
   - [Adding your app credentials](#adding-your-app-credentials)
   - [Using ngrok as a local proxy](#using-ngrok-as-a-local-proxy)
 - [Developing your app](#developing-your-app)
-- [Subscribing to events](#subscribing-to-events)
-- [Responding to events](#responding-to-events)
+- [Running the app](#running-the-app)
+- [Subscribing to events](#subscribing-to-events-and-actions)
+  - [Events](#events)
+  - [Actions](#actions)
+- [Responding to events](#responding-to-events-and-actions)
+- [Slack interactive messages](#slack-interactive-messages)
+  - [Messages builder](#messages-builder)
+  - [Building with Block Kit](#building-with-block-kit)
+  
 
 # Getting started 
 This README covers creating a basic Slack app tailored to work with Bolt. There is a more general [app setup](https://api.slack.com/authentication/basics) guide that goes into greater detail.
@@ -105,7 +112,7 @@ if __name__ == "__main__":
     app.start(port=int(os.environ.get("PORT", 3000)))  # POST http://localhost:3000/slack/events
 ```
 
-## Running the app
+# Running the app
 The above code initializes the app using the `App` constructor, then starts a simple HTTP server on port 3000. The HTTP server is using a built-in development adapter, which is responsible for handling and parsing incoming events from Slack. You can run your app now, but it won't do much.
 
 ```bash
@@ -119,3 +126,123 @@ python app.py
 # in another terminal (if it isn't running already)
 ngrok http 3000
 ```
+
+# Subscribing to events and actions
+Your app can listen to all sorts of events and actions — messages being posted, users joining the team, button clicks and more. 
+
+## Events
+To listen for events, your app uses the [Events API](https://api.slack.com/events), 
+and you will need to subscribe to each one of the events that is relevant for your app.
+
+In order to do that, go to your app configuration page, select the **Event Subscriptions** sidebar. 
+You'll be presented with an input box to enter a **Request URL**, which is where Slack sends the events your app is subscribed to. 
+For local development, we'll use your ngrok URL from above.
+
+- For example: `https://1234abcde.ngrok.io`
+
+By default Bolt for Python listens for all incoming requests at the `/slack/events` route, so for the Request URL you can enter your ngrok URL appended with `/slack/events`.
+
+- For example: `https://1234abcde.ngrok.io/slack/events`
+
+After you've saved your Request URL, click on **Subscribe to bot events**, then **Add Bot User Event** and search for the event you want to subscribe to. 
+Then **Save Changes** using the green button on the bottom right, and your app will start receiving that events as users when they happen.
+
+## Actions
+To listen for actions we need to first direct the requests from slack to our server.
+The relevant endpoint is the same one as for the events `/slack/events`.
+So in order to do that, go to your app configuration page, select the **Interactivity & Shortcuts** sidebar. 
+You'll be presented with an input box to enter a **Request URL** similarly to the event one, 
+and you should fill it with the same URL (`https://<you-ngrok-link>/slack/events`).
+
+
+# Responding to events and actions
+To respond to events and actions with Bolt for Python, you can write a listener. 
+Listeners have access to the event/action body, the entire request payload, and an additional context object that holds helpful information like the bot token you used to instantiate your app.
+
+Let's set up a basic listener to a button click action.
+First we will have to create such a button. This could be done with this example code:
+```python
+import os
+from slack_sdk import WebClient
+
+message_with_buttons = {
+	"blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Would you like to drink a happy beer?:beer:",
+				"emoji": True
+			}
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"emoji": True,
+						"text": "Yes"
+					},
+					"callback_id": "yes_button",
+					"value": "yes"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"emoji": True,
+						"text": ":beers: Of Course!"
+					},
+					"callback_id": "of_course_button",
+					"style": "primary",
+					"value": "of course"
+				}
+			]
+		}
+	]
+}
+
+slack_client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
+slack_client.chat_postMessage(channel=some_channel_id, **message_with_buttons)
+```
+
+Then paste this listener code, which is using a Python decorator `@app.action("<callback_id>")`, into your existing Bolt app:
+```python
+@app.action("of_course_button")
+def handle_yes_button_click(ack, respond, body):
+  ack()
+  message = {"blocks": body.get("message", {}).get("blocks")}
+  text_element = {
+        "type": "plain_text",
+        "text": "Oh! That's my type of guy :star-struck:",
+        "emoji": True
+    }
+  context_block = {
+        "type": "context",
+        "elements": [text_element]
+    }
+  message["blocks"].append(context_block)
+  respond(message)
+```
+The listener should get as a parameter whatever it needs.
+(request, context, options, body, shortcut, action, view, command, event, message, step, say) (read more at Bolt's documentation slack_bolt/kwargs_injection/utils.py)
+Ack is a must one so that slack will know that it was handled.
+
+# Slack interactive messages
+There are plenty of interactions with shortcuts, modals, or interactive components (such as buttons, select menus, and datepickers).
+
+## Messages builder
+Improve your app's design with the [Block Kit Builder](https://app.slack.com/block-kit-builder/). 
+This is a prototyping tool that allows you to design Slack apps quickly, 
+then paste the code into your Bolt app (Slack also have public [Figma files](https://www.figma.com/@slack) if you'd rather use them to design your app).
+
+## Building with Block Kit
+The Block Kit UI framework is built with blocks. Apps can add blocks to surfaces like the Home tab, messages and modals.
+
+Blocks are visual components that can be stacked and arranged to create app layouts. 
+Block Kit can make your app's communication clearer while also giving you consistent opportunity to interact with users.
+
+If you are not familiar with the Block Kit UI framework you should get the basics from [this slack guide](https://api.slack.com/block-kit/building).
+For the full block elements follow the [slack documentation](https://api.slack.com/reference/block-kit/block-elements).
