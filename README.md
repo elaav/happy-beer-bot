@@ -208,7 +208,7 @@ slack_client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 slack_client.chat_postMessage(channel=some_channel_id, **message_with_buttons)
 ```
 
-Then paste this listener code, which is using a Python decorator `@app.action("<callback_id>")`, into your existing Bolt app:
+Then paste this listener code, which is using a Python decorator `@app.action("<action_id>")`, into your existing Bolt app:
 ```python
 @app.action("of_course_button")
 def handle_yes_button_click(ack, say):
