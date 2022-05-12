@@ -1,5 +1,5 @@
-# happy-beer-bot
-Sample app using Bolt for Python for "Dev Velocity" meetup (May 2022)
+# Happy Beer Bot
+A sample app using Python Bolt for "Dev Velocity" meetup (May 2022)
 
 Based on the slack documentation:  
 https://api.slack.com/start/building/bolt-python  
@@ -185,7 +185,7 @@ message_with_buttons = {
 						"emoji": True,
 						"text": "Yes"
 					},
-					"callback_id": "yes_button",
+					"action_id": "yes_button",
 					"value": "yes"
 				},
 				{
@@ -195,7 +195,7 @@ message_with_buttons = {
 						"emoji": True,
 						"text": ":beers: Of Course!"
 					},
-					"callback_id": "of_course_button",
+					"action_id": "of_course_button",
 					"style": "primary",
 					"value": "of course"
 				}
@@ -211,20 +211,9 @@ slack_client.chat_postMessage(channel=some_channel_id, **message_with_buttons)
 Then paste this listener code, which is using a Python decorator `@app.action("<callback_id>")`, into your existing Bolt app:
 ```python
 @app.action("of_course_button")
-def handle_yes_button_click(ack, respond, body):
+def handle_yes_button_click(ack, say):
   ack()
-  message = {"blocks": body.get("message", {}).get("blocks")}
-  text_element = {
-        "type": "plain_text",
-        "text": "Oh! That's my type of guy :star-struck:",
-        "emoji": True
-    }
-  context_block = {
-        "type": "context",
-        "elements": [text_element]
-    }
-  message["blocks"].append(context_block)
-  respond(message)
+  say("Oh! That's my type of guy :star-struck:")
 ```
 The listener should get as a parameter whatever it needs.
 (request, context, options, body, shortcut, action, view, command, event, message, step, say) (read more at Bolt's documentation slack_bolt/kwargs_injection/utils.py)
