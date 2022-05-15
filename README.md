@@ -111,6 +111,7 @@ app = App(
 if __name__ == "__main__":
     app.start(port=int(os.environ.get("PORT", 3000)))  # POST http://localhost:3000/slack/events
 ```
+For more examples take a look at the [bolt examples](https://github.com/slackapi/bolt-python/tree/main/examples).
 
 # Running the app
 The above code initializes the app using the `App` constructor, then starts a simple HTTP server on port 3000. The HTTP server is using a built-in development adapter, which is responsible for handling and parsing incoming events from Slack. You can run your app now, but it won't do much.
@@ -205,7 +206,7 @@ message_with_buttons = {
 }
 
 slack_client = WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
-slack_client.chat_postMessage(channel=some_channel_id, **message_with_buttons)
+slack_client.chat_postMessage(channel=CHANNEL_ID, **message_with_buttons)
 ```
 
 Then paste this listener code, which is using a Python decorator `@app.action("<action_id>")`, into your existing Bolt app:
